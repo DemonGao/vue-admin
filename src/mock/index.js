@@ -15,7 +15,7 @@ Mock.setup({
 // 登录相关
 Mock.mock(/\/cms\/user\/login/, 'post', loginAPI.loginByUsername)
 Mock.mock(/\/login\/logout/, 'post', loginAPI.logout)
-Mock.mock(/\/user\/info\.*/, 'get', loginAPI.getUserInfo)
+Mock.mock(/\/cms\/user\/userInfo/, 'post', loginAPI.getUserInfo)
 
 // 图书相关
 Mock.mock(/\/kindle\/cms\/bookTag\/loadList/, 'post', bookTag.getList)

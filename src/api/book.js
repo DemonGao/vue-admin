@@ -1,11 +1,11 @@
 import request from '@/utils/request'
 
-export function add (query) {
+export function add (data) {
   return new Promise((resolve, reject) => {
     request({
-      url: '/kindle/cms/book/add',
-      method: 'post',
-      params: query
+      url: '/cms/book/add',
+      method: 'POST',
+      data
     }).then((res) => {
       resolve(res)
     }).catch((err) => {

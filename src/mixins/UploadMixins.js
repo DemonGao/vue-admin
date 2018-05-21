@@ -22,9 +22,6 @@ const mixin = {
           message: '取消替换!'
         })
       })
-    },
-    uploadChange (files, fileList) {
-      console.log(files)
     }
   },
   created: function () {

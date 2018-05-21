@@ -62,8 +62,6 @@ const user = {
     GetUserInfo ({commit, state}) {
       return new Promise((resolve, reject) => {
         getUserInfo(state.token).then(res => {
-          console.log(res)
-
           if (res.roles && res.roles.length > 0) { // 验证返回的roles是否是一个非空数组
             commit('SET_ROLES', res.roles)
           } else {
@@ -122,6 +120,7 @@ const user = {
         commit('SET_TOKEN', role)
         setToken(role)
         getUserInfo(role).then(response => {
+          console.log(response)
           const data = response.data
           commit('SET_ROLES', data.roles)
           commit('SET_NAME', data.name)

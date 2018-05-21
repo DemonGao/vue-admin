@@ -19,11 +19,24 @@ export function logout() {
   })
 }
 
+/**
+ * 获取用户权限
+ * @param token
+ */
 export function getUserInfo(token) {
-  return request({
-    url: '/user/info',
-    method: 'get',
-    params: { token }
+  return new Promise((resolve, reject) => {
+    request({
+      url: '/cms/user/userInfo',
+      method: 'POST',
+      params: { token }
+    }).then((res) => {
+      console.log(res)
+      const {roles} = res
+      Object.assign(res, {
+        roles: roles.split(',')
+      })
+      resolve(res)
+    }).catch((err) => reject(err))
   })
 }
 

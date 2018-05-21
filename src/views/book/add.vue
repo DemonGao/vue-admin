@@ -22,19 +22,17 @@
       <el-row :gutter="12">
         <el-col :span="16">
           <el-card>
-            <el-form-item
-              label="图书名称"
-              prop="name"
-              :rules="[
+            <el-form-item label="图书名称"
+                          prop="name"
+                          :rules="[
                 { required: true, message: '图书名称不能为空'}
               ]"
             >
               <el-input v-model="book.name"></el-input>
             </el-form-item>
-            <el-form-item
-              label="图书简介"
-              prop="content"
-              :rules="[
+            <el-form-item label="图书简介"
+                          prop="content"
+                          :rules="[
                 { required: true, message: '图书简介不能为空'}
               ]"
             >
@@ -47,16 +45,15 @@
                 maxlength="1000"
               ></el-input>
             </el-form-item>
-            <el-form-item
-              label="图书类目"
-              prop="type"
-              :rules="[
+            <el-form-item label="图书类目"
+                          prop="typeId"
+                          :rules="[
                 { required: true, message: '图书类目不能为空'}
               ]"
             >
               <el-select
                 style="width: 100%;"
-                v-model="book.type"
+                v-model="book.typeId"
                 filterable
                 allow-create
                 default-first-option
@@ -72,7 +69,7 @@
             <el-form-item label="图书标签">
               <el-select
                 style="width: 100%;"
-                v-model="book.tag"
+                v-model="book.tags"
                 multiple
                 filterable
                 allow-create
@@ -89,48 +86,51 @@
           </el-card>
         </el-col>
         <el-col :span="8">
+          <!--图书封面上传-->
           <el-card>
             <div slot="header" class="clearfix">
               <span>图书封面上传</span>
             </div>
             <el-upload
               class="dragImg"
+              ref="uploadImg"
               name="file"
-              :file-list="book.img"
-              action="https://jsonplaceholder.typicode.com/posts/"
+              action="https://upload.qiniup.com"
               drag
               show-file-list
               :limit="1"
               accept="image/png"
               list-type="picture"
               :auto-upload="false"
+              :before-upload="beforeUploadImg"
               :on-exceed="uploadExceed"
+              :on-change="uploadImgChange"
+              :on-remove="uploadImgRemove"
             >
               <i class="el-icon-upload"></i>
               <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
               <div class="el-upload__tip" slot="tip">只能上传png文件，且不超过500kb</div>
             </el-upload>
           </el-card>
+          <!--图书文档上传-->
           <el-card style="margin-top: 10px;">
             <div slot="header" class="clearfix">
               <span>图书文档上传</span>
             </div>
             <el-upload
-              ref="upload"
+              ref="uploadTxt"
               class="dragImg"
-              name="file"
               :data="dataObj"
-              :file-list="book.img"
               action="https://upload.qiniup.com"
               drag
               show-file-list
               :limit="1"
-              accept="mobi"
               list-type="picture"
               :auto-upload="false"
+              :before-upload="beforeUploadTxt"
               :on-exceed="uploadExceed"
-              :on-change="uploadChange"
-              :before-upload="beforeUpload"
+              :on-change="uploadTxtChange"
+              :on-remove="uploadTxtRemove"
             >
               <i class="el-icon-upload"></i>
               <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
@@ -158,37 +158,67 @@
 </template>
 
 <script>
-  import { add as addBook } from '@/api/book'
-  import { getToken } from '@/api/qiniu'
-  import { fetchList as fetTagList } from '@/api/bookTag'
-  import { fetchList as fetTypeList } from '@/api/bookType'
+  import {add as addBook} from '@/api/book'
+  import {getToken} from '@/api/qiniu'
+  import {fetchList as fetTagList} from '@/api/bookTag'
+  import {fetchList as fetTypeList} from '@/api/bookType'
   import UploadMixins from '@/mixins/UploadMixins'
   import FormMixins from '@/mixins/FormMixins'
 
   export default {
     mixins: [UploadMixins, FormMixins],
-    data () {
+    data() {
       return {
         dataObj: {token: '', key: ''},
         book: {
-          name: '',
-          content: '',
-          type: '',
-          tag: [],
-          img: []
+          name: '1',
+          content: '1',
+          typeId: 1,
+          tags: ['哈哈', 4, 6]
         },
         tagList: [],
-        typeList: []
+        typeList: [],
+        isUploadImgFiles: false,
+        isUploadTxtFiles: false
       }
     },
     components: {},
     computed: {},
     methods: {
-      async submitForm (formName) {
+      async submitForm(formName) {
         this.$refs[formName].validate((valid) => {
           if (valid) {
-            addBook().then(res => {
-              this.$refs.upload.submit()
+            // if (!this.isUploadImgFiles) {
+            //   this.$message({
+            //     message: '请上传图书封面',
+            //     type: 'warning'
+            //   })
+            //   return false
+            // }
+            // if (!this.isUploadTxtFiles) {
+            //   this.$message({
+            //     message: '请上传图书文档',
+            //     type: 'warning'
+            //   })
+            //   return false
+            // }
+            const createTags = []
+            const tagIds = []
+            const {tags} = this.book
+            tags.forEach((item) => {
+              if (Object.prototype.toString.call(item) === '[object String]') {
+                createTags.push(item)
+              } else {
+                tagIds.push(parseInt(item))
+              }
+            })
+            addBook({
+              ...this.book,
+              tagIds,
+              createTags
+            }).then(res => {
+              this.$refs.uploadTxt.submit()
+              this.$refs.uploadImg.submit()
             })
           } else {
             console.log('error submit!!')
@@ -196,22 +226,41 @@
           }
         })
       },
-      async beforeUpload () {
-        const token = await getToken()
-        this.dataObj.token = 'book.mobi'
-        this.dataObj.key = token
-        console.log(this.dataObj)
-        return true
+      // 图片上传操作
+      uploadImgChange(file, fileList) {
+        this.isUploadImgFiles = true
+      },
+      uploadImgRemove(file, fileList) {
+        this.isUploadImgFiles = false
+      },
+      beforeUploadImg() {
+        return getToken().then(res => {
+          this.dataObj.key = 'book.mobi'
+          this.dataObj.token = res
+        })
+      },
+      // 图书上传操作
+      uploadTxtChange(file, fileList) {
+        this.isUploadTxtFiles = true
+      },
+      uploadTxtRemove(file, fileList) {
+        this.isUploadTxtFiles = false
+      },
+      beforeUploadTxt() {
+        return getToken().then(res => {
+          this.dataObj.key = 'book.mobi'
+          this.dataObj.token = res
+        })
       }
     },
-    created () {
-      getToken()
+    created() {
       Promise.all([fetTagList(), fetTypeList()])
         .then(([tagListRes, typeListRes]) => {
-          this.tagList = tagListRes.list
-          this.typeList = typeListRes.list
+          this.tagList = tagListRes
+          this.typeList = typeListRes
         })
     },
-    mounted () {}
+    mounted() {
+    }
   }
 </script>
